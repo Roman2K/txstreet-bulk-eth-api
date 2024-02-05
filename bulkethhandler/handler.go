@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/Roman2K/bulk-eth-api/collection"
@@ -34,7 +34,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Received nonces request: %v\n", noncesReq)
+	slog.Debug("Received nonces request", "req", noncesReq)
 
 	resultsCollector := collection.LimitCollector[common.Address, nonceResult]{
 		Limiter: h.Limiter,
@@ -56,7 +56,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Returning nonces results: %v\n", results)
+	slog.Debug("Returning nonces results", "results", results)
 
 	err = json.NewEncoder(w).Encode(results)
 	if err != nil {
@@ -66,6 +66,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendError(w http.ResponseWriter, err error) {
-	log.Printf("Error while serving request: %s", err)
+	slog.Error("Error while serving request", "error", err)
+
 	http.Error(w, "Internal error", 500)
 }

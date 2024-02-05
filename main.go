@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/Roman2K/bulk-eth-api/bulkethhandler"
@@ -26,6 +28,7 @@ func main() {
 const listenAddr = ":8081"
 
 func run() error {
+	setLogger()
 	ctx := context.Background()
 
 	client, err := ethclient.DialContext(ctx, "/mnt/lfs/geth/data/ipc")
@@ -33,7 +36,7 @@ func run() error {
 		return fmt.Errorf("Failed to instantiate Ethereum client: %w", err)
 	}
 
-	limiter := limits.NewLimiter(2)
+	limiter := limits.NewLimiter(1)
 
 	handler := bulkethhandler.Handler{
 		Context:   ctx,
@@ -41,7 +44,7 @@ func run() error {
 		Limiter:   limiter,
 	}
 
-	log.Printf("Listening on %s\n", listenAddr)
+	slog.Info("Listening", "addr", listenAddr)
 
 	return http.ListenAndServe(listenAddr, handler)
 
@@ -86,4 +89,15 @@ func run() error {
 	fmt.Printf("logs: %v\n", strings.Join(logs, "\n"))
 
 	return nil
+}
+
+func setLogger() {
+	slog.SetDefault(
+		slog.New(
+			slog.NewTextHandler(
+				os.Stderr,
+				&slog.HandlerOptions{Level: slog.LevelDebug},
+			),
+		),
+	)
 }
