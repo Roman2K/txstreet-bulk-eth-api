@@ -38,11 +38,7 @@ func run() error {
 
 	limiter := limits.NewLimiter(1)
 
-	handler := bulkethhandler.Handler{
-		Context:   ctx,
-		EthClient: client,
-		Limiter:   limiter,
-	}
+	handler := bulkethhandler.NewHandler(ctx, client, limiter)
 
 	slog.Info("Listening", "addr", listenAddr)
 
