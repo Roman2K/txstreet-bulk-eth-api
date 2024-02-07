@@ -8,27 +8,12 @@ import (
 	"github.com/Roman2K/bulk-eth-api/limits"
 )
 
-type handler struct {
-	ctx       context.Context
-	ethClient EthClient
-	limiter   limits.Limiter
-}
-
 func NewHandler(ctx context.Context, ethClient EthClient, limiter limits.Limiter) http.Handler {
-	handler := handler{
-		ctx:       ctx,
-		ethClient: ethClient,
-		limiter:   limiter,
-	}
-
 	mux := http.NewServeMux()
 
-	//
-	//
-	// /transaction-receipts
-
-	mux.HandleFunc("/nonces", handler.handleNonces)
-	mux.HandleFunc("/contract-codes", handler.handleContractCodes)
+	mux.Handle("/nonces", newNoncesHandler(ethClient, limiter))
+	mux.Handle("/contract-codes", newContractCodesHandler(ethClient, limiter))
+	mux.Handle("/transaction-receipts", newTxReceiptsHandler(ethClient, limiter))
 
 	return mux
 }
