@@ -7,6 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Roman2K/bulk-eth-api/bulkethhandler"
 	"github.com/Roman2K/bulk-eth-api/limits"
@@ -34,7 +37,10 @@ func run() error {
 	)
 
 	setLogger(opts.logLevel)
+
 	ctx := context.Background()
+	var cancel context.CancelCauseFunc
+	ctx, cancel = stopOnSignal(ctx)
 
 	client, err := ethclient.DialContext(ctx, opts.ethUrl)
 	if err != nil {
@@ -44,8 +50,31 @@ func run() error {
 	limiter := limits.NewLimiter(opts.ethConcurrency)
 	handler := bulkethhandler.NewHandler(ctx, client, limiter)
 
-	slog.Info("Listening", "addr", opts.listenAddr)
-	return http.ListenAndServe(opts.listenAddr, handler)
+	server := &http.Server{Addr: opts.listenAddr, Handler: handler}
+	slog.Info("HTTP server listening", "addr", server.Addr)
+
+	go func() {
+		defer cancel(nil)
+
+		<-ctx.Done()
+
+		ctx, timeoutCancel := context.WithTimeout(ctx, 10*time.Second)
+		defer timeoutCancel()
+
+		slog.Info("Shutting down HTTP server", "timeout", formatContextTimeout(ctx))
+
+		server.Shutdown(ctx)
+	}()
+
+	if err = server.ListenAndServe(); err != http.ErrServerClosed {
+		return err
+	}
+	slog.Info("HTTP server shut down")
+
+	slog.Info("Waiting for pending tasks")
+	limiter.Wait()
+
+	return nil
 }
 
 func setLogger(level slog.Level) {
@@ -57,4 +86,33 @@ func setLogger(level slog.Level) {
 			),
 		),
 	)
+}
+
+func formatContextTimeout(ctx context.Context) string {
+	if deadline, ok := ctx.Deadline(); ok {
+		return deadline.Sub(time.Now()).String()
+	}
+
+	return "None"
+}
+
+func stopOnSignal(ctx context.Context) (context.Context, context.CancelCauseFunc) {
+	sigContext, cancel := context.WithCancelCause(ctx)
+
+	sigChan := make(chan os.Signal)
+	go func() {
+		defer cancel(nil)
+
+		signal := <-sigChan
+		slog.Info("Received signal", "signal", signal)
+		cancel(fmt.Errorf("Received %s", signal))
+
+		signal = <-sigChan
+		slog.Warn("Received second signal, stopping", "signal", signal)
+		os.Exit(2)
+	}()
+
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	return sigContext, cancel
 }
