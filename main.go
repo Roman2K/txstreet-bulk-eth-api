@@ -50,13 +50,20 @@ func run() error {
 	limiter := limits.NewLimiter(opts.ethConcurrency)
 	handler := bulkethhandler.NewHandler(ctx, client, limiter)
 
-	server := &http.Server{Addr: opts.listenAddr, Handler: handler}
+	server := &http.Server{
+		Addr:           opts.listenAddr,
+		Handler:        handler,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   20 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1 MB
+	}
 	slog.Info("HTTP server listening", "addr", server.Addr)
 
 	go func() {
 		defer cancel(nil)
 
 		<-ctx.Done()
+		slog.Debug("Signal context cancelled", "error", ctx.Err(), "cause", context.Cause(ctx))
 
 		ctx, timeoutCancel := context.WithTimeout(ctx, 10*time.Second)
 		defer timeoutCancel()

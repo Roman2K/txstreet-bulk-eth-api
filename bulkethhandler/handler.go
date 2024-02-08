@@ -5,8 +5,14 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/Roman2K/bulk-eth-api/contextutil"
 	"github.com/Roman2K/bulk-eth-api/limits"
 )
+
+type handler struct {
+	parentContext context.Context
+	handler       http.Handler
+}
 
 func NewHandler(ctx context.Context, ethClient EthClient, limiter limits.Limiter) http.Handler {
 	mux := http.NewServeMux()
@@ -15,7 +21,19 @@ func NewHandler(ctx context.Context, ethClient EthClient, limiter limits.Limiter
 	mux.Handle("/contract-codes", newContractCodesHandler(ethClient, limiter))
 	mux.Handle("/transaction-receipts", newTxReceiptsHandler(ethClient, limiter))
 
-	return mux
+	return handler{
+		parentContext: ctx,
+		handler:       mux,
+	}
+}
+
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := contextutil.Intersect(h.parentContext, r.Context())
+	defer cancel()
+
+	r = r.WithContext(ctx)
+
+	h.handler.ServeHTTP(w, r)
 }
 
 func sendError(w http.ResponseWriter, err error) {
