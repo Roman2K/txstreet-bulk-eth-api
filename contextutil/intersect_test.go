@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Roman2K/bulk-eth-api/testutil"
 	assert "github.com/stretchr/testify/require"
 )
 
-func TestIntersect(t *testing.T) {
+func TestIntersectCancellingParent(t *testing.T) {
 	parent, cancel1 := context.WithCancel(context.Background())
 	defer cancel1()
 
@@ -21,26 +22,38 @@ func TestIntersect(t *testing.T) {
 
 	assert.False(t, isDone(intersection))
 
-	t.Run("CancellingParent", func(t *testing.T) {
-		cancel1()
+	cancel1()
 
-		assert.True(t, isDone(intersection))
+	assert.True(t, isDone(intersection))
 
-		assert.Equal(t, context.Canceled, intersection.Err())
-		assert.Equal(t, context.Canceled, context.Cause(intersection))
-	})
-
-	t.Run("CancellingOtherContext", func(t *testing.T) {
-		cancel2(errors.New("Some cause"))
-
-		assert.True(t, isDone(intersection))
-
-		assert.Equal(t, context.Canceled, intersection.Err())
-		assert.Equal(t, context.Canceled, context.Cause(intersection))
-	})
+	assert.Equal(t, context.Canceled, intersection.Err())
+	assert.Equal(t, context.Canceled, context.Cause(intersection))
 }
 
-func TestIntersectWithOtherContextDeadline(t *testing.T) {
+// })
+
+func TestIntersectCancellingOtherWithCause(t *testing.T) {
+	parent, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+
+	ctx2, cancel2 := context.WithCancelCause(context.Background())
+	defer cancel2(nil)
+
+	intersection, cancelIntersection := Intersect(parent, ctx2)
+	defer cancelIntersection()
+
+	assert.False(t, isDone(intersection))
+
+	someCause := errors.New("Some cause")
+	cancel2(someCause)
+
+	assert.True(t, isDone(intersection))
+
+	assert.Equal(t, context.Canceled, intersection.Err())
+	assert.Equal(t, someCause, context.Cause(intersection))
+}
+
+func TestIntersectWithOtherContextDeadlineCancellingOther(t *testing.T) {
 	parent, cancel1 := context.WithCancel(context.Background())
 	defer cancel1()
 
@@ -60,9 +73,62 @@ func TestIntersectWithOtherContextDeadline(t *testing.T) {
 	assert.Equal(t, context.Canceled, context.Cause(intersection))
 }
 
+func TestIntersectWithOtherContextDeadlineOtherTimesOut(t *testing.T) {
+	parent, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel2()
+
+	intersection, cancelIntersection := Intersect(parent, ctx2)
+	defer cancelIntersection()
+
+	assert.False(t, isDone(intersection))
+
+	<-intersection.Done()
+
+	assert.True(t, isDone(intersection))
+
+	assert.Equal(t, context.DeadlineExceeded, intersection.Err())
+	assert.Equal(t, context.DeadlineExceeded, context.Cause(intersection))
+}
+
+func TestIntersectWithOtherContextDeadlineParentTimesOut(t *testing.T) {
+	parent, cancel1 := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel1()
+
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 70*time.Millisecond)
+	defer cancel2()
+
+	intersection, cancelIntersection := Intersect(parent, ctx2)
+	defer cancelIntersection()
+
+	assert.False(t, isDone(intersection))
+
+	noTimeout := testutil.RunWithin(60*time.Millisecond, func() {
+		<-intersection.Done()
+	})
+
+	assert.True(t, noTimeout)
+	assert.True(t, isDone(intersection))
+
+	assert.Equal(t, context.DeadlineExceeded, intersection.Err())
+	assert.Equal(t, context.DeadlineExceeded, context.Cause(intersection))
+
+	noTimeout = testutil.RunWithin(30*time.Millisecond, func() {
+		<-ctx2.Done()
+	})
+
+	assert.True(t, noTimeout)
+
+	assert.Equal(t, context.DeadlineExceeded, intersection.Err())
+	assert.Equal(t, context.DeadlineExceeded, context.Cause(intersection))
+}
+
 func isDone(ctx context.Context) bool {
 	timeoutCtx, cancel :=
 		context.WithTimeout(context.Background(), 50*time.Millisecond)
+
 	defer cancel()
 
 	select {
