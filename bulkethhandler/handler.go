@@ -7,6 +7,7 @@ import (
 
 	"github.com/Roman2K/bulk-eth-api/contextutil"
 	"github.com/Roman2K/bulk-eth-api/limits"
+	"github.com/segmentio/ksuid"
 )
 
 type handler struct {
@@ -23,7 +24,9 @@ func NewHandler(ctx context.Context, ethClient EthClient, limiter limits.Limiter
 
 	return handler{
 		parentContext: ctx,
-		handler:       mux,
+		handler: requestLogHandler{
+			mux,
+		},
 	}
 }
 
@@ -31,13 +34,25 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := contextutil.Intersect(h.parentContext, r.Context())
 	defer cancel()
 
+	ctx = setRequestId(ctx, ksuid.New())
 	r = r.WithContext(ctx)
 
 	h.handler.ServeHTTP(w, r)
 }
 
-func sendError(w http.ResponseWriter, err error) {
-	slog.Error("Error while serving request", "error", err)
+func sendError(w http.ResponseWriter, r *http.Request, err error) {
+	logger := requestLogger(r)
+	logger.ErrorContext(r.Context(), "Error while serving request", "error", err)
 
 	http.Error(w, "Internal error", 500)
+}
+
+func requestLogger(r *http.Request) *slog.Logger {
+	logger := slog.Default()
+
+	if requestId, ok := getRequestId(r.Context()); ok {
+		return logger.With("requestId", requestId)
+	}
+
+	return logger
 }
