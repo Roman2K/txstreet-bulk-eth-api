@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -18,11 +19,13 @@ import (
 )
 
 func main() {
-	fmt.Println("vim-go")
+	slog.Info("Starting")
 
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
+
+	slog.Info("Exiting")
 }
 
 func run() error {
@@ -54,7 +57,7 @@ func run() error {
 		Addr:           opts.listenAddr,
 		Handler:        handler,
 		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   20 * time.Second,
+		WriteTimeout:   30 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
 	slog.Info("HTTP server listening", "addr", server.Addr)
@@ -73,7 +76,7 @@ func run() error {
 		server.Shutdown(ctx)
 	}()
 
-	if err = server.ListenAndServe(); err != http.ErrServerClosed {
+	if err = server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	slog.Info("HTTP server shut down")

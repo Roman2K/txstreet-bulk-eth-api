@@ -71,6 +71,7 @@ func TestLimitWaiterHittingLimit(t *testing.T) {
 
 func TestLimitWaiterWait(t *testing.T) {
 	limiter := NewLimiter(1)
+	startTime := time.Now()
 
 	go func() {
 		limiter.Limit()
@@ -83,7 +84,6 @@ func TestLimitWaiterWait(t *testing.T) {
 		limiter.Release()
 	}()
 
-	startTime := time.Now()
 	noTimeout := testutil.RunWithin(70*time.Millisecond, func() {
 		limiter.Wait()
 	})
