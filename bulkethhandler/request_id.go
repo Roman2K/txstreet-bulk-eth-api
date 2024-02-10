@@ -3,26 +3,27 @@ package bulkethhandler
 import (
 	"context"
 	"encoding"
-	"errors"
 	"fmt"
-)
 
-var errMissingRequestId = errors.New("Missing request ID in context")
+	"github.com/segmentio/ksuid"
+)
 
 type requestId interface {
 	fmt.Stringer
 	encoding.TextMarshaler
 }
 
-type requestKey string
-
-var requestIdKey = requestKey("requestId")
-
-func setRequestId(ctx context.Context, reqId requestId) context.Context {
-	return context.WithValue(ctx, requestIdKey, reqId)
+func newRequestId() requestId {
+	return ksuid.New()
 }
 
-func getRequestId(ctx context.Context) (requestId, bool) {
-	reqId, ok := ctx.Value(requestIdKey).(requestId)
+type requestIdKey struct{}
+
+func withRequestId(ctx context.Context, reqId requestId) context.Context {
+	return context.WithValue(ctx, requestIdKey{}, reqId)
+}
+
+func contextRequestId(ctx context.Context) (requestId, bool) {
+	reqId, ok := ctx.Value(requestIdKey{}).(requestId)
 	return reqId, ok
 }
