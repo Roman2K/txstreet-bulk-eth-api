@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eo pipefail
+
+port=${HEALTHCHECK_PORT-8080}
+
+# Test: get contract code of USDC
+result=`
+  wget --quiet -O- \
+    --header 'Content-Type: application/json' \
+    --post-data '{"contracts": ["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]}' \
+    http://localhost:${port}/contract-codes
+`
+echo "$result" | head -c 120
+
+echo "$result" \
+  | grep -q 'ffff1690602001909291908035906020019082018035906020019190919293919'

@@ -26,5 +26,16 @@ RUN addgroup -g $GROUP_ID -S app \
 USER app
 WORKDIR $USER_HOME
 
+COPY --chown=root:root --chmod=0555 docker-healthcheck /docker-healthcheck
+
+HEALTHCHECK \
+  --interval=30s \
+  --timeout=20s \
+  --retries=3 \
+  --start-period=40s \
+  CMD /docker-healthcheck
+
+STOPSIGNAL SIGINT
+
 ENTRYPOINT ["app"]
 CMD []

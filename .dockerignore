@@ -1,3 +1,6 @@
+/.tool-versions
+/_archive
+/_tools
 /.dockerignore
 /.gitignore
 /Dockerfile
