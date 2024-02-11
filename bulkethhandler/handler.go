@@ -2,6 +2,7 @@ package bulkethhandler
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -17,6 +18,7 @@ type handler struct {
 func NewHandler(ctx context.Context, ethClient EthClient, limiter limits.Limiter) http.Handler {
 	mux := http.NewServeMux()
 
+	mux.Handle("/ping", http.HandlerFunc(handlePing))
 	mux.Handle("/nonces", newNoncesHandler(ethClient, limiter))
 	mux.Handle("/contract-codes", newContractCodesHandler(ethClient, limiter))
 	mux.Handle("/transaction-receipts", newTxReceiptsHandler(ethClient, limiter))
@@ -27,6 +29,10 @@ func NewHandler(ctx context.Context, ethClient EthClient, limiter limits.Limiter
 			mux,
 		},
 	}
+}
+
+func handlePing(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Pong\n")
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
