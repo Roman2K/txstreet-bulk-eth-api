@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/Roman2K/bulk-eth-api/contextutil"
-	"github.com/Roman2K/bulk-eth-api/limits"
+	"github.com/Roman2K/txstreet-bulk-eth-api/contextutil"
+	"github.com/Roman2K/txstreet-bulk-eth-api/limits"
 )
 
 type handler struct {

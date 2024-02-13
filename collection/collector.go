@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/Roman2K/bulk-eth-api/limits"
+	"github.com/Roman2K/txstreet-bulk-eth-api/limits"
 )
 
 type Collector[InT, OutT any] interface {

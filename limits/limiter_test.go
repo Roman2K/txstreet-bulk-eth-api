@@ -7,7 +7,7 @@ import (
 
 	assert "github.com/stretchr/testify/require"
 
-	"github.com/Roman2K/bulk-eth-api/testutil"
+	"github.com/Roman2K/txstreet-bulk-eth-api/testutil"
 )
 
 func TestLimitWaiter(t *testing.T) {

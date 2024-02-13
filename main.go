@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Roman2K/bulk-eth-api/bulkethhandler"
-	"github.com/Roman2K/bulk-eth-api/limits"
+	"github.com/Roman2K/txstreet-bulk-eth-api/bulkethhandler"
+	"github.com/Roman2K/txstreet-bulk-eth-api/limits"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 )

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Roman2K/bulk-eth-api/testutil"
+	"github.com/Roman2K/txstreet-bulk-eth-api/testutil"
 	assert "github.com/stretchr/testify/require"
 )
 

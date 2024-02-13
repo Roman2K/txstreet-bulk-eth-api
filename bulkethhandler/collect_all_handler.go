@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Roman2K/bulk-eth-api/collection"
-	"github.com/Roman2K/bulk-eth-api/limits"
+	"github.com/Roman2K/txstreet-bulk-eth-api/collection"
+	"github.com/Roman2K/txstreet-bulk-eth-api/limits"
 )
 
 const defaultWriteTimeout = 30 * time.Second

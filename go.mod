@@ -1,4 +1,4 @@
-module github.com/Roman2K/bulk-eth-api
+module github.com/Roman2K/txstreet-bulk-eth-api
 
 go 1.22rc2
 

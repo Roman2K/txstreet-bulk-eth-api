@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Roman2K/bulk-eth-api/limits"
+	"github.com/Roman2K/txstreet-bulk-eth-api/limits"
 	"github.com/ethereum/go-ethereum/common"
 )
 
